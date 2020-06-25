@@ -1,0 +1,14 @@
+Metadata-Version: 1.1
+Name: msr
+Version: 1.0.0
+Summary: Symops challenge
+Home-page: example
+Author: Kelvin
+Author-email: author@example.com
+License: UNKNOWN
+Description-Content-Type: python
+Description: ...
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 2
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent

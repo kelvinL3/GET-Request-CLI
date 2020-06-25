@@ -1,0 +1,146 @@
+#!/usr/bin/env python
+
+
+semver = '1.0.0'
+
+import json
+from django.core.validators import URLValidator, ValidationError
+import argparse
+import pprint
+import requests
+import urlparse
+import os.path
+import sys
+from threading import Thread
+
+
+# registry = None
+REGISTRY_PATH = './registry.json'
+
+def get_registry():
+	if not os.path.exists(REGISTRY_PATH):
+		registry = {}
+		save_registry(registry)
+	json_file = open(REGISTRY_PATH, 'r')
+	# registry = json.loads(json_file.read())
+	registry =  eval(json_file.read())
+	json_file.close()
+	if registry == None:
+		registry = {}
+	
+	# print(registry)
+	return registry
+
+def save_registry(registry):
+	
+	if registry != None:
+		json_file = open(REGISTRY_PATH, 'w')
+		# json_file.write(json.dumps(registry))
+		json.dump(registry, json_file)
+		
+		json_file.close()
+
+def add_registry(url, registry):
+	if registry == None:
+		registry = get_registry()
+	
+	# print("before modificaation:", registry)
+	registry[url] = 0
+	# print("sdafdsafdsa:", registry)
+	return registry
+
+def register(args):
+	registry = get_registry()
+	url = args.register[0]
+	if url in registry:
+		# print("valid url")
+		return
+	try:
+		URLValidator()(url)
+		registry = add_registry(url, registry)
+		save_registry(registry)
+		#print("valid url")
+	except ValidationError as e:
+		#print("invalid url")
+		exit(1)
+	
+
+def measure():
+	registry = get_registry()
+	responses = {}
+	for url in registry:
+		# this library automatically follows redirects 
+		responses[url] = len(requests.get(url).content)	
+	pprint.pprint(responses)
+	# sys.stdout.flush()
+
+def race_thread(url, results, index):
+
+	resp = requests.get(url)
+	domain = urlparse.urlparse(resp.url).netloc
+	results[index] = (domain, resp.elapsed.total_seconds())
+	return
+
+
+def race():
+
+	registry = get_registry()
+	
+	threads = [None] * len(registry)
+	results = [None] * len(registry)
+	# import pdb; pdb.set_trace()
+	i = 0
+	for url in registry:
+		threads[i] = Thread(target=race_thread, args=(url, results, i))
+		threads[i].start()
+		i += 1
+	
+	
+	for t in threads:
+		t.join()
+	
+	times = {}
+	for r in results:
+		domain, time = r		
+		if domain not in times:
+			times[domain] = []
+		times[domain].append(time)
+	
+	# take the average
+	for domain in times:
+		times[domain] = sum(times[domain])/len(times[domain])
+	pprint.pprint(times)
+
+def main():
+
+	parser = argparse.ArgumentParser()
+
+	parser.add_argument("--version", action='store_true', default=False)
+	parser.add_argument("--register", nargs = 1, metavar = 'url', type = str)
+	parser.add_argument("--measure", action='store_true', default=False)
+	parser.add_argument("--race", action='store_true', default=False)
+
+	args = parser.parse_args()
+
+
+
+	if args.register != None:
+		register(args)
+	elif args.measure == True:
+		measure()
+	elif args.race == True:
+		race()
+	elif args.version == True:
+		sys.stdout.write(semver)
+		
+	
+	sys.stdout.flush()
+	sys.stderr.flush()
+	sys.stdout.close()
+	sys.stderr.close()
+
+if __name__ == "__main__":
+	main()
+
+
+# dependencies, django, argparse, json)

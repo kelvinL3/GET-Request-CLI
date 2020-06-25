@@ -1,0 +1,6 @@
+README.md
+msr
+msr.egg-info/PKG-INFO
+msr.egg-info/SOURCES.txt
+msr.egg-info/dependency_links.txt
+msr.egg-info/top_level.txt
